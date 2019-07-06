@@ -88,7 +88,7 @@ class Crowler(CrawlSpider):
             content_text = w3lib.html.remove_tags_with_content(body_content, which_ones=('style','script'))
             content_text = w3lib.html.remove_tags(content_text)
             i['wordcount'] = len(re.split('[\s\t\n, ]+',content_text, flags=re.UNICODE))
-            if True: #should we render js ?
+            if self.js: #should we render js ?
                 print("##########yolo############")
                 session = HTMLSession()
                 r = session.get(response.url)
