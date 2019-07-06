@@ -6,6 +6,7 @@ from scrapy.linkextractors import LinkExtractor
 import scrapy
 import w3lib
 import re
+from requests_html import HTMLSession
 
 from utils import *
 from pipelines import CrowlPipeline
@@ -15,7 +16,7 @@ class Crowler(CrawlSpider):
     name = 'Crowl'
     handle_httpstatus_list = [301,302,404,410,500,503,504]
 
-    def __init__(self, url, links=False, content=False, depth=5, *args, **kwargs):
+    def __init__(self, url, links=False, content=False, depth=5,js=False, *args, **kwargs):
         domain = urlparse(url).netloc
         # We'll crawl only internal links
         self._rules = [
@@ -27,6 +28,7 @@ class Crowler(CrawlSpider):
         self.content = content # Should we store content ?
         self.depth = depth # How deep should we go ?
         # robots.txt enhanced
+        self.js = js
         self.robots = Robots.fetch(urlparse(url).scheme + '://' + domain + '/robots.txt')
 
 
@@ -86,7 +88,12 @@ class Crowler(CrawlSpider):
             content_text = w3lib.html.remove_tags_with_content(body_content, which_ones=('style','script'))
             content_text = w3lib.html.remove_tags(content_text)
             i['wordcount'] = len(re.split('[\s\t\n, ]+',content_text, flags=re.UNICODE))
-            
+            if True: #should we render js ?
+                print("##########yolo############")
+                session = HTMLSession()
+                r = session.get(response.url)
+                r.html.render()
+                print("##########yolo############")
             if self.content: # Should we store content ?
                 i['content'] = response.body.decode(response.encoding)
             if self.links: # Should we store links ?

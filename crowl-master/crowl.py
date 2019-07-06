@@ -59,7 +59,9 @@ if __name__ == '__main__':
         default=5,type=int)
     parser.add_argument('--conf_file',help="Config file (default: config.ini)",
         default='config.ini',type=str)
+    parser.add_argument("-js", "--javascript", help="enable js rendering", default=False)
     args = parser.parse_args()
+    
 
     # Check if start URL is valid
     if not validate_url(args.url):
@@ -70,7 +72,8 @@ if __name__ == '__main__':
         'url': args.url, 
         'links': args.links,
         'content': args.content,
-        'depth': args.depth
+        'depth': args.depth,
+        'js': args.javascript
     }
 
     settings = get_settings()
