@@ -60,6 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('--conf_file',help="Config file (default: config.ini)",
         default='config.ini',type=str)
     parser.add_argument("-js", "--javascript", help="enable js rendering", action="store_true", default=False)
+    parser.add_argument("-t", "--timeout", help="Timeout for java rendering, no effect if not used with option -js", default=10)
     args = parser.parse_args()
     
 
@@ -73,7 +74,8 @@ if __name__ == '__main__':
         'links': args.links,
         'content': args.content,
         'depth': args.depth,
-        'js': args.javascript
+        'js': args.javascript,
+        'timeout': args.timeout
     }
 
     settings = get_settings()

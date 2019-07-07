@@ -16,7 +16,7 @@ class Crowler(CrawlSpider):
     name = 'Crowl'
     handle_httpstatus_list = [301,302,404,410,500,503,504]
 
-    def __init__(self, url, links=False, content=False, depth=5,js=False, *args, **kwargs):
+    def __init__(self, url, links=False, content=False, depth=5,js=False, timeout=10, *args, **kwargs):
         domain = urlparse(url).netloc
         # We'll crawl only internal links
         self._rules = [
@@ -29,6 +29,7 @@ class Crowler(CrawlSpider):
         self.depth = depth # How deep should we go ?
         # robots.txt enhanced
         self.js = js
+        self.timeout = timeout
         self.robots = Robots.fetch(urlparse(url).scheme + '://' + domain + '/robots.txt')
 
 
@@ -58,7 +59,10 @@ class Crowler(CrawlSpider):
         session = HTMLSession()
         r = session.get(response.url)
         if self.js: #should we render js ?
-            r.html.render()
+            try:
+                r.html.render(timeout=self.timeout)
+            except:
+                self.logger.info("Could not render java for page " +  r.url)
 
         self.logger.info("{} ({})".format(r.url, r.status_code))
         i = CrowlItem()
