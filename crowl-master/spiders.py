@@ -55,15 +55,20 @@ class Crowler(CrawlSpider):
         """
         Main function, parses response and extracts data.  
         """
-        self.logger.info("{} ({})".format(response.url, response.status))
+        session = HTMLSession()
+        r = session.get(response.url)
+        if self.js: #should we render js ?
+            r.html.render()
+
+        self.logger.info("{} ({})".format(r.url, r.status_code))
         i = CrowlItem()
-        i['url'] = response.url
-        i['response_code'] = response.status 
+        i['url'] = r.url
+        i['response_code'] = r.status_code
         i['level'] = response.meta.get('depth', 0)
         i['latency'] = response.meta.get('download_latency')
         i['crawled_at'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S%z')
 
-        ref = response.request.headers.get('Referer', None)
+        ref = r.headers.get('Referer', None)
         if ref: # Not always a referer, see config
             i['referer'] = ref.decode('utf-8') # Headers are encoded
         tag = response.headers.get('X-Robots-Tag', None)
@@ -73,7 +78,7 @@ class Crowler(CrawlSpider):
         if typ:
             i['content_type'] = typ.decode('utf-8')
 
-        if response.status == 200: # Data only available for 200 OK urls  
+        if r.status_code == 200: # Data only available for 200 OK urls  
             # `extract_first(default='None')` returns 'None' if empty, prevents errors
             i['title'] = response.xpath('//title/text()').extract_first(default='None').strip()
             i['meta_description'] = response.xpath('//meta[@name=\'description\']/@content').extract_first(default='None').strip()
@@ -84,27 +89,23 @@ class Crowler(CrawlSpider):
             i['canonical'] = response.xpath('//link[@rel=\'canonical\']/@href').extract_first(default='None').strip()
             
             # Word Count
-            body_content = response.xpath('//body').extract()[0]
+            body_content = r.html.xpath('//body')[0].html
             content_text = w3lib.html.remove_tags_with_content(body_content, which_ones=('style','script'))
             content_text = w3lib.html.remove_tags(content_text)
             i['wordcount'] = len(re.split('[\s\t\n, ]+',content_text, flags=re.UNICODE))
-            if self.js: #should we render js ?
-                print("##########yolo############")
-                session = HTMLSession()
-                r = session.get(response.url)
-                r.html.render()
-                print("##########yolo############")
             if self.content: # Should we store content ?
                 i['content'] = response.body.decode(response.encoding)
             if self.links: # Should we store links ?
                 outlinks = list()
-                links = LinkExtractor().extract_links(response)
+                links = list(r.html.absolute_links)
+                Extractlinks = LinkExtractor().extract_links(response)
                 c = 0
                 max = len(links)
-                for link in links:
+                for k in range(len(links)):
+                    link = links[k]
                     lien = dict()
                     # Check if target is forbidden by robots.txt
-                    if not self.robots.allowed(link.url,"*") and is_internal(link.url,response.url):
+                    if not self.robots.allowed(link,"*") and is_internal(link,r.url):
                         lien['disallow'] = True
                     # Check if X-Robots-Tag nofollow
                     if 'nofollow' in response.headers.getlist('X-Robots-Tag'):
@@ -113,11 +114,11 @@ class Crowler(CrawlSpider):
                     if response.xpath('//meta[@name="robots"]/@content[contains(text(),"nofollow")]'):
                         lien['nofollow'] = True
                     # Check if link nofollow
-                    if link.nofollow:
-                        lien['nofollow'] = True
-                    lien['text'] = str.strip(link.text)
-                    lien['source'] = response.url   
-                    lien['target'] = link.url          
+                    if not self.js and Extractlinks[k].nofollow:
+                        Extractlink[k]['nofollow'] = True
+                    lien['text'] = link
+                    lien['source'] = r.url   
+                    lien['target'] = link
                     lien['weight'] = 1 - c / max
                     c = c+1
                     outlinks.append(lien)
